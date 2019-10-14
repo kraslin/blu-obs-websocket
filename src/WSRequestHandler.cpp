@@ -136,7 +136,16 @@ QHash<QString, HandlerResponse(*)(WSRequestHandler*)> WSRequestHandler::messageM
 	{ "ListOutputs", WSRequestHandler::HandleListOutputs },
 	{ "GetOutputInfo", WSRequestHandler::HandleGetOutputInfo },
 	{ "StartOutput", WSRequestHandler::HandleStartOutput },
-	{ "StopOutput", WSRequestHandler::HandleStopOutput }
+	{ "StopOutput", WSRequestHandler::HandleStopOutput },
+
+	{ "GetSourceTypeDefaults",WSRequestHandler::HandleGetSourceTypeDefaults },
+	{ "AddNewSourceToScene",WSRequestHandler::HandleAddNewSourceToScene },
+	{ "RemoveSourceFromScene",WSRequestHandler::HandleRemoveSourceFromScene },
+
+	{ "SetSceneItemOrder",WSRequestHandler::HandleSetSceneItemOrder },
+	{ "GetScene",WSRequestHandler::HandleGetScene },
+	{ "SetSceneItemIndex",WSRequestHandler::HandleSetSceneItemIndex }
+
 };
 
 QSet<QString> WSRequestHandler::authNotRequired {

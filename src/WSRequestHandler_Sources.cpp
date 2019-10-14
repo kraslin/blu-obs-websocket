@@ -1493,3 +1493,106 @@ HandlerResponse WSRequestHandler::HandleTakeSourceScreenshot(WSRequestHandler* r
 	obs_data_set_string(response, "sourceName", obs_source_get_name(source));
 	return req->SendOKResponse(response);
 }
+
+HandlerResponse WSRequestHandler::HandleGetSourceTypeDefaults(WSRequestHandler* req) {
+	if (!req->hasField("source-type")) {
+		return req->SendErrorResponse("source-type parameter is missing");
+	}
+
+	OBSDataAutoRelease sourceDefaults = obs_get_source_defaults(obs_data_get_string(req->data, "source-type"));
+	OBSDataAutoRelease response = obs_data_create();
+
+	obs_data_set_string(response, "source-type", obs_data_get_string(req->data, "source-type"));
+	obs_data_set_obj(response, "settings", sourceDefaults);
+	
+	return req->SendOKResponse(response);
+}
+
+HandlerResponse WSRequestHandler::HandleAddNewSourceToScene(WSRequestHandler* req) {
+	if (!req->hasField("name")) {
+		return req->SendErrorResponse("Source name must be specified");
+	}
+
+	if (!req->hasField("type")) {
+		return req->SendErrorResponse("Source type must be specified");
+	}
+
+	if (!req->hasField("scene")) {
+		return req->SendErrorResponse("Scene name must be specified");
+	}
+
+	QString sceneName = obs_data_get_string(req->data, "scene");
+	obs_source_t* scene_src = obs_get_source_by_name(sceneName.toUtf8());
+	if (!scene_src) {
+		return req->SendErrorResponse("Scene does not exist");
+	}
+
+	obs_scene_t* scene = obs_scene_from_source(scene_src);
+	if (!scene) {
+		return req->SendErrorResponse("Unable to find scene");
+	}
+
+	if (!req->hasField("settings")) {
+		return req->SendErrorResponse("Settings must be specified");
+	}
+
+	OBSSourceAutoRelease src = obs_source_create(
+		obs_data_get_string(req->data, "type"),
+		obs_data_get_string(req->data, "name"),
+		obs_data_get_obj(req->data, "settings"),
+		NULL
+	);
+
+	if (!src) {
+		return req->SendErrorResponse("Error occurred creating source");
+	}
+
+	obs_sceneitem_t* item = obs_scene_add(scene, src);
+	if (!item) {
+		return req->SendErrorResponse("Error adding source to scene");
+	}
+
+	obs_source_release(scene_src);
+
+	OBSDataAutoRelease response = obs_data_create();
+	obs_data_set_string(response, "source", obs_data_get_string(req->data, "source"));
+	obs_data_set_string(response, "scene", obs_data_get_string(req->data, "scene"));
+
+	return req->SendOKResponse(response);
+}
+
+HandlerResponse WSRequestHandler::HandleRemoveSourceFromScene(WSRequestHandler* req) {
+	if (!req->hasField("name")) {
+		return req->SendErrorResponse("Source name must be specified");
+	}
+
+	if (!req->hasField("scene")) {
+		return req->SendErrorResponse("No scene specified");
+	}
+
+	QString sceneName = obs_data_get_string(req->data, "scene");
+	obs_source_t* scene_src = obs_get_source_by_name(sceneName.toUtf8());
+	if (!scene_src) {
+		return req->SendErrorResponse("Scene does not exist");
+	}
+
+	obs_scene_t* scene = obs_scene_from_source(scene_src);
+	if (!scene) {
+		return req->SendErrorResponse("Unable to find scene");
+	}
+
+	QString sourceName = obs_data_get_string(req->data, "name");
+	obs_sceneitem_t* item = obs_scene_find_source(scene, sourceName.toUtf8());
+	if (!item) {
+		return req->SendErrorResponse("Unable to find source in scene");
+	}
+
+	obs_sceneitem_remove(item);
+	obs_source_release(scene_src);
+
+	OBSDataAutoRelease response = obs_data_create();
+	obs_data_set_string(response, "source", obs_data_get_string(req->data, "name"));
+	obs_data_set_string(response, "scene", obs_data_get_string(req->data, "scene"));
+
+	return req->SendOKResponse(response);
+}
